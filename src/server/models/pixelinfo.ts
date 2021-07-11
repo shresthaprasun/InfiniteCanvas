@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 
-const PixelInfoSchema = new Schema({
+export const PixelInfoSchema = new Schema({
     x: {
         type: Number,
         required: true

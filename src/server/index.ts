@@ -1,7 +1,8 @@
 import * as express from "express";
 import { createServer } from "http";
-import { connect, model, Schema } from "mongoose";
+import { connect } from "mongoose";
 import { Server, Socket } from "socket.io";
+import { PixelInfo } from "./models/pixelinfo";
 
 const app: express.Express = express();
 const httpServer = createServer(app);
@@ -13,23 +14,6 @@ connect('mongodb://mongo:27017/infinitecanvas', { useNewUrlParser: true })
 .then(() => console.log('MongoDB conncted'))
 .catch(err => console.log(err));
 
-import { PixelInfo } from "./models/pixelinfo";
-
-//   const PixelInfoSchema = new Schema({
-//     x: {
-//         type: Number,
-//         required: true
-//     },
-//     y: {
-//         type: Number,
-//         required: true
-//     },
-//     rgba: {
-//         type: Buffer,
-//         required: true
-//     }
-// })
-// const PixelInfo = model('pixelInfo', PixelInfoSchema);
 
 io.on("connect", (socket: Socket) => {
   console.log('a user connected');
