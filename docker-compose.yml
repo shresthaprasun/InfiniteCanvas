@@ -1,0 +1,21 @@
+version: '3'
+services:
+    web:
+        container_name: infinitecanvas
+        build: .
+        ports:
+            - "5000:3000"
+        links:
+            - mongo
+    mongo:
+        container_name: mongo
+        image: mongo
+        ports:
+            - "27017:27017"
+        environment: 
+            DB_ROOT_PASSWORD: "password"
+        volumes: 
+            - db-data:/infinitecanvas_db
+
+volumes:
+    db-data :
