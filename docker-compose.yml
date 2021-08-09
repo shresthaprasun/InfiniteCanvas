@@ -1,12 +1,5 @@
 version: '3'
 services:
-    web:
-        container_name: infinitecanvas
-        build: .
-        ports:
-            - "5000:3000"
-        links:
-            - mongo
     mongo:
         container_name: mongo
         image: mongo
@@ -16,6 +9,29 @@ services:
             DB_ROOT_PASSWORD: "password"
         volumes: 
             - db-data:/infinitecanvas_db
+        networks: 
+            - webnet
+    redis:
+        container_name: redis
+        image: redis
+        ports:
+            - "6379:6379"
+        networks: 
+            - webnet
+    web:
+        container_name: infinitecanvas
+        build: .
+        ports:
+            - "5000:3000"
+        links:
+            - mongo
+            - redis
+        networks: 
+            - webnet
+        environment:
+            REDIS_HOST : redis
 
 volumes:
     db-data :
+networks: 
+    webnet :
