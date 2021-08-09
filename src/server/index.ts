@@ -13,7 +13,7 @@ const app: express.Express = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-const redisClient = redis.createClient(REDIS_PORT, process.env.REDIS_HOST);
+const redisClient = redis.createClient(REDIS_PORT, process.env.REDIS_HOST, );
 
 app.use(express.static("public"));
 
@@ -37,9 +37,19 @@ io.on("connect", (socket: Socket) => {
     //caching in redis - store
     for (let i = 0; i < pixelsInGrid.pixelArray.length; ++i) {
       const { x, y, rgba } = pixelsInGrid.pixelArray[i];
-      if (rgba[3] != 0) {
-        redisClient.hset(pixelsInGrid.gridId, `${x}_${y}`, `${rgba}`,(obj)=>{console.log("upload",obj)});
-      }
+      // if (rgba[3] != 0) {
+        const gridId = pixelsInGrid.gridId;
+        const xy = `${x}_${y}`;
+        // const color = rgba.toString();
+        console.log("uploading to redis", gridId, xy, rgba);
+
+        redisClient.hset(gridId, xy, rgba, (err, data) => {
+          if (err) throw err;
+          if (data != null) {
+            // console.log("from redis", data);
+          }
+        });
+      // }
     }
 
     // for (let i = 0; i < pixelsInGrid.size; ++i) {
@@ -50,18 +60,28 @@ io.on("connect", (socket: Socket) => {
     // }
   });
 
-  socket.on("fetchPixelsInGridBox", async (boxInGrid: IBoxInGridToFetch) => {//temp
+  socket.on("fetchPixelsInGridBox", (boxInGrid: IBoxInGridToFetch) => {//temp
     // const panPixels = await PixelInfo.find({ x: { $gte: topLeftX, $lte: bottomRightX }, y: { $gte: topLeftY, $lte: bottomRightY } })
     // const xBatch = panPixels.map((pixel) => pixel["x"]);
     // const yBatch = panPixels.map((pixel) => pixel["y"]);
     // const colorBatch = panPixels.map((pixel) => pixel["rgba"]);
 
-    const pixelsInGrid = redisClient.hgetall(boxInGrid.gridId, (obj)=>{
-      console.log("obj",obj)
+    console.log("fetching", boxInGrid.gridId)
+    redisClient.hgetall(boxInGrid.gridId, (err, data) => {
+      if (err) throw err;
+      if (data != null) {
+        console.log("pixelsInGrid", data)
+        const pixelInGrid: IPixelsInGridInfo = { gridId: boxInGrid.gridId, pixelArray: [] };
+        for (const key in data) {
+          const xy = key.split("_");
+          // const color: Uint8ClampedArray = new Uint8ClampedArray(data[key] as unknown as Uint8Array);// as unknown as Uint8Array;
+          pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: data[key] })
+        }
+        console.log("pixelsInGrid", pixelInGrid)
+
+        socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
+      }
     });
-    console.log("pixelsInGrid",pixelsInGrid);
-    
-    socket.emit('pixelsForPan', { 'x': [], 'y': [], 'color': [] });
   });
 });
 

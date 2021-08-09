@@ -35,12 +35,12 @@ export class SocketIO implements IInputEvenHandler {
             if (cb) cb();
         });
 
-        this.socket.on('pixelsForPan', function (msg, cb) {
-            if (msg && msg["x"] && msg["y"] && msg["color"]) {
-                for (let i = 0; i < msg["x"].length; ++i) {
-                    const imagedata = new ImageData(new Uint8ClampedArray(msg["color"][i]), 1, 1);
-                    this.ctx.putImageData(imagedata, msg["x"][i] - this.anchorPoint.x, msg["y"][i] - this.anchorPoint.y);
-                }
+        this.socket.on('pixelsForPan', (pixelsForPan:IPixelsInGridInfo , cb) => {
+            if (pixelsForPan) console.log(pixelsForPan);
+            if (pixelsForPan ) {
+                for(const pixelInfo of pixelsForPan.pixelArray){
+                    this.iCanvas.putPixelToCanvas(pixelInfo);
+                }                
             }
             if (cb) cb();
         });
@@ -56,6 +56,7 @@ export class SocketIO implements IInputEvenHandler {
             case PointerEventType.PRIMARY_END_DRAG:
                 const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
                 pixelBoxMap.forEach((pixelArray, gridId) => {
+                    console.log("uploading",pixelArray);
                     this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
                 })
                 break;
@@ -63,12 +64,12 @@ export class SocketIO implements IInputEvenHandler {
             case PointerEventType.SECONDARY_START_DRAG:
                 break;
             case PointerEventType.SECONDARY_DRAGGED:
-                break;
-            case PointerEventType.SECONDARY_END_DRAG:
                 this.iGrid.gridAdded.forEach((gridId) => {
                     const box = this.iGrid.gridBoxes.get(gridId);
                     box && this.socket.emit("fetchPixelsInGridBox", { gridId, xmin: box.min.x, xmax: box.max.x, ymin: box.min.y, ymax: box.max.y } as IBoxInGridToFetch);
-                })
+                });
+                break;
+            case PointerEventType.SECONDARY_END_DRAG:                
                 break;
         }
     }

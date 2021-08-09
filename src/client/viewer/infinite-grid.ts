@@ -49,8 +49,11 @@ export class InfiniteGrid implements IInputEvenHandler {
 
     init(anchorPoint: IPoint, canvasWidth: number, canvasHeight: number) {
         this._anchorPoint.copy(anchorPoint);
-        this.canvasBox.max.set(canvasWidth, canvasHeight)
+        this.canvasBox.min.set(0, 0);
+        this.canvasBox.max.set(canvasWidth, canvasHeight);
         this.calculateRelativeGridBoxes();
+        console.log("grid added", this.gridAdded);
+        console.log("grid removed", this.gridRemoved);
     }
 
 
@@ -60,7 +63,9 @@ export class InfiniteGrid implements IInputEvenHandler {
         this.gridAdded.clear();
         this.gridRemoved.clear();
         this._relativeGridBoxes.clear();
-        this._relativeGridBoxes = this.getMappedGridBoxes(this.canvasBox);
+        const originalCanvas = this.canvasBox.clone();
+        originalCanvas.translate(this._anchorPoint);
+        this._relativeGridBoxes = this.getMappedGridBoxes(originalCanvas);
         this._relativeGridBoxes.forEach((_, boxId) => {
             if (!currentGridBoxes.has(boxId)) {
                 this._gridAdded.add(boxId);
@@ -76,10 +81,10 @@ export class InfiniteGrid implements IInputEvenHandler {
 
     public getMappedGridBoxes(pixelBox: IBox): Map<string, IBox> {
         const resultGridBoxes = new Map<string, IBox>();
-        let leftEdge = 0;
-        let rightEdge = 0;
-        let topEdge = 0;
-        let bottomEdge = 0;
+        let leftEdge = pixelBox.min.x;
+        let rightEdge = pixelBox.max.x;
+        let topEdge = pixelBox.max.y;
+        let bottomEdge = pixelBox.min.y;
 
         const boxWidth = pixelBox.max.x - pixelBox.min.x;
         const boxHeight = pixelBox.max.y - pixelBox.min.y;

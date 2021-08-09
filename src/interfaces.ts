@@ -1,7 +1,8 @@
 export interface IPixelInfo {
     x: number;
     y: number;
-    rgba: Int8Array;
+    rgba: string;
+    // rgba: Uint8ClampedArray;
 }
 
 export interface IPixelsInGridInfo {

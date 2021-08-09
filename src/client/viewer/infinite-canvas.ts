@@ -51,8 +51,8 @@ export class InfiniteCanvas implements IInputEvenHandler {
 
         const resizeSensor = new ResizeSensor(parent, (size: { width: number; height: number; }) => {
             const canvasData = this.ctx.getImageData(0, 0, this.canvasRect.width, this.canvasRect.height);
-            this._canvas.width = size.width;
-            this._canvas.height = size.height;
+            this._canvas.width = Math.floor(size.width);
+            this._canvas.height = Math.floor(size.height);
             canvasData && this.ctx.putImageData(canvasData, 0, 0);
             //get remaining data from local cache or database
         });
@@ -99,20 +99,20 @@ export class InfiniteCanvas implements IInputEvenHandler {
                 for (let j = box.min.y; j < box.max.y; ++j) {
                     const pixel = this.ctx.getImageData(i, j, 1, 1);
                     if (pixel.data["3"] as number !== 0) {
-                        pixelArray.push({ x: i + this._iGrid.anchorPoint.x, y: j + this._iGrid.anchorPoint.y, rgba: pixel.data as unknown as Int8Array })
+                        pixelArray.push({ x: i + this._iGrid.anchorPoint.x, y: j + this._iGrid.anchorPoint.y, rgba: pixel.data.toString()})
                     }
                 }
             }
             result.set(gridId, pixelArray);
         });
-        this.moveTo.x = Math.floor(event.pageX);
-        this.moveTo.y = Math.floor(event.pageY);
+        this.moveTo.set(Math.floor(event.pageX), Math.floor(event.pageY));
         return result;
     }
 
     public putPixelToCanvas(pixel: IPixelInfo) {
         const { x, y, rgba } = pixel;
-        const imagedata = new ImageData(new Uint8ClampedArray(rgba), 1, 1);
+        console.log("putting pixel in canvas", rgba);
+        const imagedata = new ImageData(new Uint8ClampedArray(rgba.split(",").map((i)=>parseInt(i,10))), 1, 1);
         this.ctx.putImageData(imagedata, x - this.anchorPoint.x, y - this.anchorPoint.y);
     }
 
