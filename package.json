@@ -25,6 +25,7 @@
     "@types/express": "^4.17.13",
     "@types/redis": "^2.8.31",
     "@types/victor": "^1.1.0",
+    "nodemon": "^2.0.12",
     "ts-loader": "^9.2.3",
     "typescript": "^4.3.5",
     "webpack": "^5.44.0",

@@ -54,6 +54,7 @@ export class Box implements IBox {
             this.validateBox();
         }
     }
+
     public clone(): IBox {
         return new Box(this._min, this._max);
     }
@@ -141,6 +142,14 @@ export class Box implements IBox {
     public translate(point: IPoint): void {
         this._min.add(point);
         this._max.add(point);
+    }
+
+    
+    public containsPoint(point: IPoint): boolean {
+        if(point.x<= this._max.x && point.x >= this._min.x && point.y<= this._max.y && point.y >= this._min.y){
+            return true;
+        }
+        return false;
     }
 
 }

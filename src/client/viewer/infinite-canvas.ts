@@ -13,7 +13,11 @@ export class InfiniteCanvas implements IInputEvenHandler {
     private panStart: IPoint;
     private moveTo: IPoint;
 
-    private boxesToFetch: Map<string, IBox[]>;
+    private _boxesToFetch: Map<string, IBox[]>;
+
+    public get boxesToFetchForPan(): Map<string, IBox[]> {
+        return this._boxesToFetch;
+    }
 
     public get canvasRect(): DOMRect {
         return this._canvas.getBoundingClientRect();
@@ -27,7 +31,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
         this._iGrid = igrid;
         this.panStart = new Point(0, 0);
         this.moveTo = new Point(0, 0);
-        this.boxesToFetch = new Map();
+        this._boxesToFetch = new Map();
     }
 
     public init(parent: HTMLElement) {
@@ -64,11 +68,15 @@ export class InfiniteCanvas implements IInputEvenHandler {
         originalBox.translate(this.anchorPoint);
         const gridBoxes = this._iGrid.getMappedGridBoxes(originalBox);
         //map Grid Boxes Back to pixel box
+        const result = new Map<string, IBox>();
         const negatedAnchorPoint = this.anchorPoint.negate();
-        gridBoxes.forEach((box, gridId) => {
-            box.translate(negatedAnchorPoint);
-        });
-        return gridBoxes;
+        if (gridBoxes.size === 1) {
+            gridBoxes.forEach((_, gridId) => {
+                originalBox.translate(negatedAnchorPoint);
+                result.set(gridId, originalBox)
+            });
+        }
+        return result;
     }
 
     //gets pixel from canvas to store in database
@@ -95,11 +103,12 @@ export class InfiniteCanvas implements IInputEvenHandler {
 
         boxMap.forEach((box, gridId) => {
             const pixelArray: IPixelInfo[] = [];
+            console.log("get Updated Data", box.clone());
             for (let i = box.min.x; i < box.max.x; ++i) {
                 for (let j = box.min.y; j < box.max.y; ++j) {
                     const pixel = this.ctx.getImageData(i, j, 1, 1);
                     if (pixel.data["3"] as number !== 0) {
-                        pixelArray.push({ x: i + this._iGrid.anchorPoint.x, y: j + this._iGrid.anchorPoint.y, rgba: pixel.data.toString()})
+                        pixelArray.push({ x: i + this._iGrid.anchorPoint.x, y: j + this._iGrid.anchorPoint.y, rgba: pixel.data.toString() })
                     }
                 }
             }
@@ -112,7 +121,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
     public putPixelToCanvas(pixel: IPixelInfo) {
         const { x, y, rgba } = pixel;
         console.log("putting pixel in canvas", rgba);
-        const imagedata = new ImageData(new Uint8ClampedArray(rgba.split(",").map((i)=>parseInt(i,10))), 1, 1);
+        const imagedata = new ImageData(new Uint8ClampedArray(rgba.split(",").map((i) => parseInt(i, 10))), 1, 1);
         this.ctx.putImageData(imagedata, x - this.anchorPoint.x, y - this.anchorPoint.y);
     }
 
@@ -136,7 +145,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
                 break;
             case PointerEventType.SECONDARY_DRAGGED:
                 let panData: ImageData | undefined = undefined;
-                this.boxesToFetch.clear();
+                this._boxesToFetch.clear();
                 const canvasBoxAfterPan = new Box(this.anchorPoint, new Point(this.anchorPoint.x + this._canvas.width, this.anchorPoint.y + this._canvas.height));
                 const canvasBoxBeforePan = new Box(new Point(this.anchorPoint.x + this._iGrid.panOffset.x, this.anchorPoint.y + this._iGrid.panOffset.y), new Point(this.anchorPoint.x + this._canvas.width - this._iGrid.panOffset.x, this.anchorPoint.y + this._canvas.height - this._iGrid.panOffset.y));
                 const newSubCanvasBoxes = canvasBoxAfterPan.subtract(canvasBoxBeforePan);
@@ -144,12 +153,12 @@ export class InfiniteCanvas implements IInputEvenHandler {
                 this._iGrid.gridBoxes.forEach((box, id) => {
                     for (const newSubCanvasBox of newSubCanvasBoxes) {
                         const subboxes = box.subtract(newSubCanvasBox);
-                        const subboxesToFetch = this.boxesToFetch.get(id);
+                        const subboxesToFetch = this._boxesToFetch.get(id);
                         if (subboxesToFetch) {
                             subboxesToFetch.push(...subboxes);
                         }
                         else {
-                            this.boxesToFetch.set(id, subboxes);
+                            this._boxesToFetch.set(id, subboxes);
                         }
                     }
                 });

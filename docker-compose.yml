@@ -30,6 +30,11 @@ services:
             - webnet
         environment:
             REDIS_HOST : redis
+        volumes:
+            - .:/src
+            - /node_modules
+        command: >
+            sh -c "npm run build && node dist/server.js"
 
 volumes:
     db-data :

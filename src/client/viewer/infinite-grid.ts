@@ -34,9 +34,6 @@ export class InfiniteGrid implements IInputEvenHandler {
     public get gridRemoved(): Set<string> { return this._gridRemoved; }
     public get panOffset(): IPoint { return this._panOffset; }
 
-
-
-
     constructor(anchorPoint: IPoint) {
         this._anchorPoint = anchorPoint;
         this.canvasBox = new Box();
@@ -81,10 +78,10 @@ export class InfiniteGrid implements IInputEvenHandler {
 
     public getMappedGridBoxes(pixelBox: IBox): Map<string, IBox> {
         const resultGridBoxes = new Map<string, IBox>();
-        let leftEdge = pixelBox.min.x;
-        let rightEdge = pixelBox.max.x;
-        let topEdge = pixelBox.max.y;
-        let bottomEdge = pixelBox.min.y;
+        let leftEdge = pixelBox.min.x - TOLERANCE;
+        let rightEdge = pixelBox.max.x + TOLERANCE;
+        let topEdge = pixelBox.max.y + TOLERANCE;
+        let bottomEdge = pixelBox.min.y - TOLERANCE;
 
         const boxWidth = pixelBox.max.x - pixelBox.min.x;
         const boxHeight = pixelBox.max.y - pixelBox.min.y;

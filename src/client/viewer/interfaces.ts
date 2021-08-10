@@ -20,6 +20,7 @@ export interface IBox {
     isEmpty(): boolean;
     subtract(box: IBox): IBox[];
     translate(point: IPoint):void;
+    containsPoint(point: IPoint): boolean;
 }
 
 export interface ISwipeArgs {

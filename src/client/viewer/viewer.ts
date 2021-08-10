@@ -1,3 +1,4 @@
+import { GridCanvas } from "./grid-canvas";
 import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
 import { InputManager } from "./input-manager";
@@ -11,6 +12,7 @@ export class Viewer {
     private anchorPoint: IPoint;
     private socket: SocketIO;
     private icanvas: InfiniteCanvas;
+    private gridCanvas: GridCanvas;
     private inputManager: InputManager;
 
     constructor() {
@@ -18,14 +20,17 @@ export class Viewer {
         this.iGrid = new InfiniteGrid(this.anchorPoint);
         this.icanvas = new InfiniteCanvas(this.iGrid);
         this.socket = new SocketIO(this.icanvas, this.iGrid);
-        this.inputManager = new InputManager([this.iGrid, this.icanvas, this.socket]);
+        this.gridCanvas = new GridCanvas(this.iGrid);
+        this.inputManager = new InputManager([this.iGrid, this.icanvas, this.socket, this.gridCanvas]);
     }
 
     init(div: HTMLElement): void {
+        console.log("viewer is initialized without deleting image without deleting image");
         // div.append(this.icanvas.canvas);
         this.icanvas.init(div);
         this.iGrid.init(this.anchorPoint, this.icanvas.canvasRect.width, this.icanvas.canvasRect.height);
         this.socket.init();
+        this.gridCanvas.init(div);
         // const socket = SocketIO.io();
         // socket.on("connect", function (): void {
         //     socket.emit("connect", { data: "connected to the SocketServer..." });

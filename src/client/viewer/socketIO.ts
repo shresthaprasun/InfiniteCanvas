@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { IBoxInGridToFetch, IPixelsInGridInfo } from "../../interfaces";
+import { CacheManager } from "./cache-manager";
 import { PointerEventType, GestureType } from "./data_types";
 import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
@@ -14,11 +15,13 @@ export class SocketIO implements IInputEvenHandler {
     private socket: Socket;
     private iCanvas: InfiniteCanvas;
     private iGrid: InfiniteGrid;
+    private cacheManager: CacheManager;
 
     constructor(iCanvas: InfiniteCanvas, igrid: InfiniteGrid) {
         this.socket = io();
         this.iCanvas = iCanvas;
         this.iGrid = igrid;
+        this.cacheManager = new CacheManager();
     }
 
     public init() {
@@ -26,24 +29,32 @@ export class SocketIO implements IInputEvenHandler {
             console.log(`Connected with socket id ${this.socket.id}`);
         });
 
-        this.socket.on('pixelEditted', (pixelsInGrid: IPixelsInGridInfo, cb) => {
-            if (pixelsInGrid) {
-                for (const pixel of pixelsInGrid.pixelArray) {
-                    this.iCanvas.putPixelToCanvas(pixel);
-                }
-            }
-            if (cb) cb();
-        });
+        // this.socket.on('pixelEditted', (pixelsInGrid: IPixelsInGridInfo, cb) => {
+        //     if (pixelsInGrid) {
+        //         for (const pixel of pixelsInGrid.pixelArray) {
+        //             this.iCanvas.putPixelToCanvas(pixel);
+        //         }
+        //     }
+        //     if (cb) cb();
+        // });
 
-        this.socket.on('pixelsForPan', (pixelsForPan:IPixelsInGridInfo , cb) => {
-            if (pixelsForPan) console.log(pixelsForPan);
-            if (pixelsForPan ) {
-                for(const pixelInfo of pixelsForPan.pixelArray){
-                    this.iCanvas.putPixelToCanvas(pixelInfo);
-                }                
-            }
-            if (cb) cb();
-        });
+        // this.socket.on('pixelsForPan', (pixelsForPan: IPixelsInGridInfo, cb) => {
+        //     if (pixelsForPan) console.log(pixelsForPan);
+        //     if (pixelsForPan) {
+        //         // save in cache
+        //         this.cacheManager.savePixelArray(pixelsForPan.gridId, pixelsForPan.pixelArray);
+        //         // for (const pixelInfo of pixelsForPan.pixelArray) {
+        //         //     this.iCanvas.putPixelToCanvas(pixelInfo);
+        //         // }
+        //     }
+        //     if (cb) cb();
+        // });
+    }
+
+    private updatePanData(pixelsForPan: IPixelsInGridInfo) {
+        for (const pixelInfo of pixelsForPan.pixelArray) {
+            this.iCanvas.putPixelToCanvas(pixelInfo);
+        }
     }
 
     public handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
@@ -56,20 +67,31 @@ export class SocketIO implements IInputEvenHandler {
             case PointerEventType.PRIMARY_END_DRAG:
                 const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
                 pixelBoxMap.forEach((pixelArray, gridId) => {
-                    console.log("uploading",pixelArray);
-                    this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
+                    this.cacheManager.savePixelArray(gridId, pixelArray);
+                    //this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
                 })
                 break;
             //pan fetch the data
             case PointerEventType.SECONDARY_START_DRAG:
                 break;
             case PointerEventType.SECONDARY_DRAGGED:
+                this.iCanvas.boxesToFetchForPan.forEach((boxes, gridId) => {
+                    for (const box of boxes) {
+                        const data = this.cacheManager.fetchSubBoxOfGrid(gridId, box);
+                        if (data.pixelArray.length > 0) {
+                            this.updatePanData(data);
+                        }
+                    }
+                });
+                this.iGrid.gridRemoved.forEach((gridId) => {
+                    this.cacheManager.deleteGridData(gridId);
+                })
                 this.iGrid.gridAdded.forEach((gridId) => {
                     const box = this.iGrid.gridBoxes.get(gridId);
-                    box && this.socket.emit("fetchPixelsInGridBox", { gridId, xmin: box.min.x, xmax: box.max.x, ymin: box.min.y, ymax: box.max.y } as IBoxInGridToFetch);
+                   // box && this.socket.emit("fetchPixelsInGridBox", { gridId, xmin: box.min.x, xmax: box.max.x, ymin: box.min.y, ymax: box.max.y } as IBoxInGridToFetch);
                 });
                 break;
-            case PointerEventType.SECONDARY_END_DRAG:                
+            case PointerEventType.SECONDARY_END_DRAG:
                 break;
         }
     }
