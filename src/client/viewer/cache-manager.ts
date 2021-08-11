@@ -9,10 +9,6 @@ export class CacheManager {
         this.cacheData = new Map();
     }
 
-    public save() {
-
-    }
-
     public savePixelArray(gridId: string, pixelArray: IPixelInfo[]): void {
         let pixelMap = this.cacheData.get(gridId);
         if (!pixelMap) {

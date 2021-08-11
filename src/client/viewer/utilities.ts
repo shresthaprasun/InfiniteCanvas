@@ -139,14 +139,25 @@ export class Box implements IBox {
         return result;
     }
 
+    public intersect(box: IBox): IBox | undefined {
+        if (this.intersects(box)) {
+            const minX = this._min.x > box.min.x ? this._min.x : box.min.x;
+            const minY = this._min.y > box.min.y ? this._min.y : box.min.y;;
+            const maxX = this._max.x < box.max.x ? this._max.x : box.max.x;
+            const maxY = this._max.y < box.max.y ? this._max.y : box.max.y;
+            return new Box(new Point(minX, minY), new Point(maxX, maxY));
+        }
+        return undefined;
+    }
+
     public translate(point: IPoint): void {
         this._min.add(point);
         this._max.add(point);
     }
 
-    
+
     public containsPoint(point: IPoint): boolean {
-        if(point.x<= this._max.x && point.x >= this._min.x && point.y<= this._max.y && point.y >= this._min.y){
+        if (point.x <= this._max.x && point.x >= this._min.x && point.y <= this._max.y && point.y >= this._min.y) {
             return true;
         }
         return false;

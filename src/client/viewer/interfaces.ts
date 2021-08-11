@@ -21,6 +21,7 @@ export interface IBox {
     subtract(box: IBox): IBox[];
     translate(point: IPoint):void;
     containsPoint(point: IPoint): boolean;
+    intersect(box: IBox): IBox | undefined;
 }
 
 export interface ISwipeArgs {

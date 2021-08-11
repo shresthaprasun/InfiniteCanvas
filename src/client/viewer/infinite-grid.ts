@@ -3,7 +3,7 @@ import { IBox, IInputEvenHandler, IPinchArgs, IPoint, ISwipeArgs } from "./inter
 import { Box, Point } from "./utilities";
 
 const GRID_SIZE = 1024
-const TOLERANCE = 50
+const TOLERANCE = 900
 
 //In canvas x increases from left to right
 //          y increases from top to bottom
@@ -49,8 +49,6 @@ export class InfiniteGrid implements IInputEvenHandler {
         this.canvasBox.min.set(0, 0);
         this.canvasBox.max.set(canvasWidth, canvasHeight);
         this.calculateRelativeGridBoxes();
-        console.log("grid added", this.gridAdded);
-        console.log("grid removed", this.gridRemoved);
     }
 
 
@@ -62,7 +60,7 @@ export class InfiniteGrid implements IInputEvenHandler {
         this._relativeGridBoxes.clear();
         const originalCanvas = this.canvasBox.clone();
         originalCanvas.translate(this._anchorPoint);
-        this._relativeGridBoxes = this.getMappedGridBoxes(originalCanvas);
+        this._relativeGridBoxes = this.getMappedGridBoxes(originalCanvas, TOLERANCE);
         this._relativeGridBoxes.forEach((_, boxId) => {
             if (!currentGridBoxes.has(boxId)) {
                 this._gridAdded.add(boxId);
@@ -73,33 +71,40 @@ export class InfiniteGrid implements IInputEvenHandler {
             if (!this._relativeGridBoxes.has(boxId)) {
                 this._gridRemoved.add(boxId);
             }
-        })
+        });
+
+        if (this.gridAdded.size > 0) {
+            console.log("grid added", this.gridAdded);
+        }
+        if (this.gridRemoved.size > 0) {
+            console.log("grid removed", this.gridRemoved);
+        }
     }
 
-    public getMappedGridBoxes(pixelBox: IBox): Map<string, IBox> {
+    public getMappedGridBoxes(pixelBox: IBox, tolerance: number = 0): Map<string, IBox> {
         const resultGridBoxes = new Map<string, IBox>();
-        let leftEdge = pixelBox.min.x - TOLERANCE;
-        let rightEdge = pixelBox.max.x + TOLERANCE;
-        let topEdge = pixelBox.max.y + TOLERANCE;
-        let bottomEdge = pixelBox.min.y - TOLERANCE;
+        let leftEdge = pixelBox.min.x - tolerance;
+        let rightEdge = pixelBox.max.x + tolerance;
+        let topEdge = pixelBox.max.y + tolerance;
+        let bottomEdge = pixelBox.min.y - tolerance;
 
         const boxWidth = pixelBox.max.x - pixelBox.min.x;
         const boxHeight = pixelBox.max.y - pixelBox.min.y;
 
         //Boundary check
-        if (this._anchorPoint.x - boxWidth - TOLERANCE === Number.NEGATIVE_INFINITY || this._anchorPoint.x - boxWidth - TOLERANCE <= Number.MIN_SAFE_INTEGER) {
+        if (this._anchorPoint.x - boxWidth - tolerance === Number.NEGATIVE_INFINITY || this._anchorPoint.x - boxWidth - tolerance <= Number.MIN_SAFE_INTEGER) {
             leftEdge = Number.MIN_SAFE_INTEGER - 1;
         }
 
-        if (this._anchorPoint.x + boxWidth + TOLERANCE === Number.POSITIVE_INFINITY || this._anchorPoint.x + boxWidth + TOLERANCE >= Number.MAX_SAFE_INTEGER) {
+        if (this._anchorPoint.x + boxWidth + tolerance === Number.POSITIVE_INFINITY || this._anchorPoint.x + boxWidth + tolerance >= Number.MAX_SAFE_INTEGER) {
             rightEdge = Number.MAX_SAFE_INTEGER + 1;
         }
 
-        if (this._anchorPoint.y + boxHeight + TOLERANCE === Number.POSITIVE_INFINITY || this._anchorPoint.y + boxHeight + TOLERANCE >= Number.MAX_SAFE_INTEGER) {
+        if (this._anchorPoint.y + boxHeight + tolerance === Number.POSITIVE_INFINITY || this._anchorPoint.y + boxHeight + tolerance >= Number.MAX_SAFE_INTEGER) {
             topEdge = Number.MAX_SAFE_INTEGER + 1;
         }
 
-        if (this._anchorPoint.x - boxHeight - TOLERANCE === Number.NEGATIVE_INFINITY || this._anchorPoint.y - boxHeight - TOLERANCE <= Number.MIN_SAFE_INTEGER) {
+        if (this._anchorPoint.x - boxHeight - tolerance === Number.NEGATIVE_INFINITY || this._anchorPoint.y - boxHeight - tolerance <= Number.MIN_SAFE_INTEGER) {
             bottomEdge = Number.MIN_SAFE_INTEGER - 1;
         }
 

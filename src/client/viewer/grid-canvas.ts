@@ -7,13 +7,9 @@ export class GridCanvas implements IInputEvenHandler {
     private iGrid: InfiniteGrid;
     private _canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
+
     constructor(iGrid: InfiniteGrid) {
         this.iGrid = iGrid;
-    }
-    handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
-    }
-    handleMultiplePointerEvent(eventType: GestureType, args: ISwipeArgs | IPinchArgs) {
-        throw new Error("Method not implemented.");
     }
 
     private get canvasRect(): DOMRect {
@@ -37,7 +33,8 @@ export class GridCanvas implements IInputEvenHandler {
         if (!this.ctx) {
             console.error(`Unable to create 2d context`);
         }
-        this.ctx.lineWidth = 10;
+        this.ctx.lineWidth = 5;
+        this.ctx.font = '48px serif';
 
         const resizeSensor = new ResizeSensor(parent, (size: { width: number; height: number; }) => {
             const canvasData = this.ctx.getImageData(0, 0, this.canvasRect.width, this.canvasRect.height);
@@ -46,9 +43,17 @@ export class GridCanvas implements IInputEvenHandler {
             canvasData && this.ctx.putImageData(canvasData, 0, 0);
             //get remaining data from local cache or database
         });
+        this.drawGrid();
+        
+    }
 
+    private drawGrid(){
         this.iGrid.gridBoxes.forEach((box, gridId) => {
             const gridBox = box.clone();
+            let anchorPoint = this.iGrid.anchorPoint.clone();
+            anchorPoint = anchorPoint.negate();
+            gridBox.translate(anchorPoint);
+            this.ctx.fillText(`(${box.min.x},${box.min.y})`, gridBox.min.x, gridBox.min.y);
             this.ctx.beginPath();
             this.ctx.moveTo(gridBox.min.x, gridBox.min.y);
             this.ctx.lineTo(gridBox.min.x, gridBox.max.y);
@@ -68,5 +73,24 @@ export class GridCanvas implements IInputEvenHandler {
 
         });
     }
+
+    public handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
+        switch (eventType) {
+            //pan
+            case PointerEventType.SECONDARY_START_DRAG:
+                break;
+            case PointerEventType.SECONDARY_DRAGGED:
+                this.ctx.clearRect(0,0, this.canvasRect.width, this.canvasRect.height);
+                this.drawGrid();
+                break;
+            case PointerEventType.SECONDARY_END_DRAG:
+                break;
+        }
+    }
+
+    public handleMultiplePointerEvent(eventType: GestureType, args: ISwipeArgs | IPinchArgs) {
+        throw new Error("Method not implemented.");
+    }
+
 
 }

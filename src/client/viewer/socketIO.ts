@@ -63,13 +63,13 @@ export class SocketIO implements IInputEvenHandler {
             case PointerEventType.PRIMARY_START_DRAG:
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
-                break;
-            case PointerEventType.PRIMARY_END_DRAG:
                 const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
                 pixelBoxMap.forEach((pixelArray, gridId) => {
                     this.cacheManager.savePixelArray(gridId, pixelArray);
                     //this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
                 })
+                break;
+            case PointerEventType.PRIMARY_END_DRAG:                
                 break;
             //pan fetch the data
             case PointerEventType.SECONDARY_START_DRAG:

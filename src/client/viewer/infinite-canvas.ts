@@ -70,12 +70,13 @@ export class InfiniteCanvas implements IInputEvenHandler {
         //map Grid Boxes Back to pixel box
         const result = new Map<string, IBox>();
         const negatedAnchorPoint = this.anchorPoint.negate();
-        if (gridBoxes.size === 1) {
-            gridBoxes.forEach((_, gridId) => {
-                originalBox.translate(negatedAnchorPoint);
-                result.set(gridId, originalBox)
-            });
-        }
+        gridBoxes.forEach((box, gridId) => {
+            const commonBox = originalBox.intersect(box);
+            if (commonBox) {
+                commonBox.translate(negatedAnchorPoint);
+                result.set(gridId, commonBox)
+            }
+        });
         return result;
     }
 
@@ -103,7 +104,6 @@ export class InfiniteCanvas implements IInputEvenHandler {
 
         boxMap.forEach((box, gridId) => {
             const pixelArray: IPixelInfo[] = [];
-            console.log("get Updated Data", box.clone());
             for (let i = box.min.x; i < box.max.x; ++i) {
                 for (let j = box.min.y; j < box.max.y; ++j) {
                     const pixel = this.ctx.getImageData(i, j, 1, 1);
@@ -120,7 +120,6 @@ export class InfiniteCanvas implements IInputEvenHandler {
 
     public putPixelToCanvas(pixel: IPixelInfo) {
         const { x, y, rgba } = pixel;
-        console.log("putting pixel in canvas", rgba);
         const imagedata = new ImageData(new Uint8ClampedArray(rgba.split(",").map((i) => parseInt(i, 10))), 1, 1);
         this.ctx.putImageData(imagedata, x - this.anchorPoint.x, y - this.anchorPoint.y);
     }
@@ -131,7 +130,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
             case PointerEventType.PRIMARY_START_DRAG:
                 this.ctx.beginPath();
                 this.ctx.moveTo(event.pageX, event.pageY);
-                this.moveTo.set(Math.abs(event.pageX), Math.abs(event.pageY));
+                this.moveTo.set(Math.floor(event.pageX), Math.floor(event.pageY));
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
                 this.ctx.lineTo(event.pageX, event.pageY);
