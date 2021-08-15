@@ -3,12 +3,24 @@
 <meta charset="UTF-8">
 <title>Document</title>
 <script src="js/client.js" defer></script>
+
 <body>
     <div id="viewer" style="width: 98vw; height: 98vh;"></div>
     <script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function(event){
-        VIEWER.init(document.getElementById("viewer"));
-    });
+        document.addEventListener("DOMContentLoaded", function (event) {
+            let defaultAnchorPoint = [0, 0];
+            const anchorPointArray = window.location.pathname.trim().replaceAll("/", "").split("_");
+            console.log("Anchor Point Array", anchorPointArray);
+            if (anchorPointArray.length == 2) {
+                const p1 = parseInt(anchorPointArray[0], 10);
+                const p2 = parseInt(anchorPointArray[1], 10);
+                if (p1 !== NaN && p2 !== NaN) {
+                    defaultAnchorPoint = [p1, p2]
+                }
+            }
+
+            VIEWER.init(document.getElementById("viewer"), defaultAnchorPoint);
+        });
     </script>
 </body>
 

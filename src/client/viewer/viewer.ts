@@ -24,9 +24,10 @@ export class Viewer {
         this.inputManager = new InputManager([this.iGrid, this.icanvas, this.socket, this.gridCanvas]);
     }
 
-    init(div: HTMLElement): void {
-        console.log("viewer is initialized without deleting image without deleting image");
+    init(div: HTMLElement, anchorPoint: number[] = [0,0]): void {
         // div.append(this.icanvas.canvas);
+        this.anchorPoint.set(anchorPoint[0], anchorPoint[1]);
+        // window.history.pushState({"app":"infiniteCanvas"},"anchorPoint",`/${this.anchorPoint.x}_${this.anchorPoint.y}/`)
         this.icanvas.init(div);
         this.iGrid.init(this.anchorPoint, this.icanvas.canvasRect.width, this.icanvas.canvasRect.height);
         this.socket.init();

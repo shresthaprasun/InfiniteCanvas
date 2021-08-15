@@ -29,14 +29,14 @@ export class SocketIO implements IInputEvenHandler {
             console.log(`Connected with socket id ${this.socket.id}`);
         });
 
-        // this.socket.on('pixelEditted', (pixelsInGrid: IPixelsInGridInfo, cb) => {
-        //     if (pixelsInGrid) {
-        //         for (const pixel of pixelsInGrid.pixelArray) {
-        //             this.iCanvas.putPixelToCanvas(pixel);
-        //         }
-        //     }
-        //     if (cb) cb();
-        // });
+        this.socket.on('pixelEditted', (pixelsInGrid: IPixelsInGridInfo, cb) => {
+            if (pixelsInGrid) {
+                for (const pixel of pixelsInGrid.pixelArray) {
+                    this.iCanvas.putPixelToCanvas(pixel);
+                }
+            }
+            if (cb) cb();
+        });
 
         // this.socket.on('pixelsForPan', (pixelsForPan: IPixelsInGridInfo, cb) => {
         //     if (pixelsForPan) console.log(pixelsForPan);

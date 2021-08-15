@@ -16,9 +16,10 @@ const io = new Server(httpServer);
 const redisClient = redis.createClient(REDIS_PORT, process.env.REDIS_HOST, );
 
 app.use(express.static("public"));
+app.use('/:anchorPoint', express.static("public"));
 
-// app.get('/', function (req, res) {
-//   res.send('Hello World!'); // This will serve your request to '/'.
+// app.get('/:anchorPoint', function (req, res) {
+//   res.send(`Hello World ${req.params}`); // This will serve your request to '/'.
 // });
 
 connect(`mongodb://mongo:${MONGO_PORT}/infinitecanvas`, { useNewUrlParser: true, useUnifiedTopology: true })

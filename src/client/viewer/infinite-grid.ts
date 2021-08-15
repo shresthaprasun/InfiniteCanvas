@@ -131,6 +131,9 @@ export class InfiniteGrid implements IInputEvenHandler {
                 const pageY = Math.floor(event.pageY);
                 this._panOffset.set(pageX - this.panStart.x, pageY - this.panStart.y);
                 this._anchorPoint.set(this._anchorPoint.x - this._panOffset.x, this._anchorPoint.y - this._panOffset.y);
+                //TODO: it creates a lot of history may be there is better way
+                // window.history.replaceState({"app":"infiniteCanvas"},"anchorPoint",`/${this._anchorPoint.x}_${this._anchorPoint.y}/`)
+                // window.location.replace('https://developer.mozilla.org/en-US/docs/Web/API/Location.reload');
                 this.calculateRelativeGridBoxes();
 
                 this.panStart.set(pageX, pageY);
