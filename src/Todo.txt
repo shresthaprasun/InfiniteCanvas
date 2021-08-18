@@ -3,3 +3,12 @@ sync for the first time
 long lived - webworker to do heavy extensive work 
 logic to remove data from redis
 socket io room 
+
+
+canvas can be accessed through main thread only
+
+worker 1 => cache manager
+worker 2 => data preparation
+worker 3 => socketio
+
+sending and fetching can be done in parallel
