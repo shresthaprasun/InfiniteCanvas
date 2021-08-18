@@ -66,7 +66,7 @@ export class SocketIO implements IInputEvenHandler {
                 const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
                 pixelBoxMap.forEach((pixelArray, gridId) => {
                     this.cacheManager.savePixelArray(gridId, pixelArray);
-                    //this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
+                    this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
                 })
                 break;
             case PointerEventType.PRIMARY_END_DRAG:                

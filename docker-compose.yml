@@ -23,7 +23,8 @@ services:
         build: .
         ports:
             - "5000:3000"
-        links:
+        depends_on:
+            - kafka
             - mongo
             - redis
         networks: 
