@@ -10,7 +10,6 @@
         document.addEventListener("DOMContentLoaded", function (event) {
             let defaultAnchorPoint = [0, 0];
             const anchorPointArray = window.location.pathname.trim().replaceAll("/", "").split("_");
-            console.log("Anchor Point Array", anchorPointArray);
             if (anchorPointArray.length == 2) {
                 const p1 = parseInt(anchorPointArray[0], 10);
                 const p2 = parseInt(anchorPointArray[1], 10);

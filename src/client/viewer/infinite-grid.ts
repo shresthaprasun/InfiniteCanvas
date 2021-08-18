@@ -73,12 +73,12 @@ export class InfiniteGrid implements IInputEvenHandler {
             }
         });
 
-        if (this.gridAdded.size > 0) {
-            console.log("grid added", this.gridAdded);
-        }
-        if (this.gridRemoved.size > 0) {
-            console.log("grid removed", this.gridRemoved);
-        }
+        // if (this.gridAdded.size > 0) {
+        //     console.log("grid added", this.gridAdded);
+        // }
+        // if (this.gridRemoved.size > 0) {
+        //     console.log("grid removed", this.gridRemoved);
+        // }
     }
 
     public getMappedGridBoxes(pixelBox: IBox, tolerance: number = 0): Map<string, IBox> {

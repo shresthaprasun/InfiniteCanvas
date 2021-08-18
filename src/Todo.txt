@@ -1,0 +1,5 @@
+message/socketio event queing so that there is no race condition to create new or update the data in mongo db
+sync for the first time
+long lived - webworker to do heavy extensive work 
+logic to remove data from redis
+socket io room 

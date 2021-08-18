@@ -30,8 +30,8 @@ export class Viewer {
         // window.history.pushState({"app":"infiniteCanvas"},"anchorPoint",`/${this.anchorPoint.x}_${this.anchorPoint.y}/`)
         this.icanvas.init(div);
         this.iGrid.init(this.anchorPoint, this.icanvas.canvasRect.width, this.icanvas.canvasRect.height);
-        this.socket.init();
         this.gridCanvas.init(div);
+        this.socket.init();
         // const socket = SocketIO.io();
         // socket.on("connect", function (): void {
         //     socket.emit("connect", { data: "connected to the SocketServer..." });

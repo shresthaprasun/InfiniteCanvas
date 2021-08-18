@@ -41,6 +41,7 @@ export class GridCanvas implements IInputEvenHandler {
             this._canvas.width = Math.floor(size.width);
             this._canvas.height = Math.floor(size.height);
             canvasData && this.ctx.putImageData(canvasData, 0, 0);
+            this.drawGrid();
             //get remaining data from local cache or database
         });
         this.drawGrid();

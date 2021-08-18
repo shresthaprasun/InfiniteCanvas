@@ -6,10 +6,10 @@ import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
 import { IInputEvenHandler, IPinchArgs, ISwipeArgs } from "./interfaces";
 
-export enum SocketIOEvent {
-    CONNECT = "connect",
-    UPLOAD_PIXEL_INFO = "uploadPixelInfo"
-}
+// export enum SocketIOEvent {
+//     CONNECT = "connect",
+//     UPLOAD_PIXEL_INFO = "uploadPixelInfo"
+// }
 
 export class SocketIO implements IInputEvenHandler {
     private socket: Socket;
@@ -27,6 +27,9 @@ export class SocketIO implements IInputEvenHandler {
     public init() {
         this.socket.on("connect", () => {
             console.log(`Connected with socket id ${this.socket.id}`);
+            this.iGrid.gridAdded.forEach((gridId) => { //sync the data?
+                this.socket.emit("fetchGridBox", gridId);
+            });
         });
 
         this.socket.on('pixelEditted', (pixelsInGrid: IPixelsInGridInfo, cb) => {
@@ -38,17 +41,15 @@ export class SocketIO implements IInputEvenHandler {
             if (cb) cb();
         });
 
-        // this.socket.on('pixelsForPan', (pixelsForPan: IPixelsInGridInfo, cb) => {
-        //     if (pixelsForPan) console.log(pixelsForPan);
-        //     if (pixelsForPan) {
-        //         // save in cache
-        //         this.cacheManager.savePixelArray(pixelsForPan.gridId, pixelsForPan.pixelArray);
-        //         // for (const pixelInfo of pixelsForPan.pixelArray) {
-        //         //     this.iCanvas.putPixelToCanvas(pixelInfo);
-        //         // }
-        //     }
-        //     if (cb) cb();
-        // });
+        this.socket.on('pixelsForPan', (pixelsForPan: IPixelsInGridInfo, cb) => {
+            if (pixelsForPan) { //from redis
+                // save in cache
+                console.log(pixelsForPan);
+                this.cacheManager.savePixelArray(pixelsForPan.gridId, pixelsForPan.pixelArray);
+                this.updatePanData(pixelsForPan);
+            }
+            if (cb) cb();
+        });
     }
 
     private updatePanData(pixelsForPan: IPixelsInGridInfo) {
@@ -87,8 +88,7 @@ export class SocketIO implements IInputEvenHandler {
                     this.cacheManager.deleteGridData(gridId);
                 })
                 this.iGrid.gridAdded.forEach((gridId) => {
-                    const box = this.iGrid.gridBoxes.get(gridId);
-                   // box && this.socket.emit("fetchPixelsInGridBox", { gridId, xmin: box.min.x, xmax: box.max.x, ymin: box.min.y, ymax: box.max.y } as IBoxInGridToFetch);
+                    this.socket.emit("fetchGridBox", gridId);
                 });
                 break;
             case PointerEventType.SECONDARY_END_DRAG:

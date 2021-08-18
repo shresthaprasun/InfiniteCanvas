@@ -4,7 +4,7 @@ import { connect } from "mongoose";
 import { Server, Socket } from "socket.io";
 import redis from "redis";
 import { IBoxInGridToFetch, IPixelsInGridInfo } from "../interfaces";
-import { GridData, PixelInfo } from "./models/pixelinfo";
+import { GridData } from "./models/pixelinfo";
 
 
 const PORT: number = parseInt(process.env.PORT, 10) || 3000;
@@ -15,7 +15,7 @@ const app: express.Express = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-// const redisClient = redis.createClient(REDIS_PORT, process.env.REDIS_HOST, );
+const redisClient = redis.createClient(REDIS_PORT, process.env.REDIS_HOST,);
 
 app.use(express.static("public"));
 app.use('/:anchorPoint', express.static("public"));
@@ -40,37 +40,37 @@ io.on("connect", (socket: Socket) => {
   socket.on('uploadPixelInfo', async (pixelsInGrid: IPixelsInGridInfo) => {
     socket.broadcast.emit('pixelEditted', pixelsInGrid)
     //caching in redis - store
-
+    const pixelArrayForMongo = [];
     for (let i = 0; i < pixelsInGrid.pixelArray.length; ++i) {
       const { x, y, rgba } = pixelsInGrid.pixelArray[i];
       const xy = `${x}_${y}`;
-      // const color = rgba.toString();
-      // console.log("uploading to redis", gridId, xy, rgba);
+      pixelArrayForMongo.push({ xy, rgba });
+      redisClient.hset(pixelsInGrid.gridId, xy, rgba, (err, data) => {
+        if (err) throw err;
+        if (data != null) {
+          // console.log("from redis", data);
+        }
+      });
+    }
 
 
-      // redisClient.hset(gridId, xy, rgba, (err, data) => {
-      //   if (err) throw err;
-      //   if (data != null) {
-      //     // console.log("from redis", data);
-      //   }
-      // });
-      // }
-
-      // producer.send({
-      //   topic: "UpdatePixel",
-      //   messages: [{
-      //     "value": JSON.stringify({ "gridId": gridId, "coord": `${xy}`, "color": rgba }),
-      //     "partition": 0
-      //   }]
-      // });
-    }  
-
-    // for (let i = 0; i < pixelsInGrid.size; ++i) {
-    //   if (pixelsInGrid.colorBatch[i][3] != 0) {
-    //     const pixelInfo = new PixelInfo({ x: pixelsInGrid.xBatch[i], y: pixelsInGrid.yBatch[i], rgba: pixelsInGrid.colorBatch[i] })
-    //     pixelInfo.save()
-    //   }
-    // }
+    //mongodb
+    try {
+      let gridData = await GridData.findOne({ anchor: pixelsInGrid.gridId });//queue is needed
+      if (gridData === null) {
+        gridData = new GridData({ anchor: pixelsInGrid.gridId, data: pixelArrayForMongo });
+      }
+      else {
+        gridData["data"].push(...pixelArrayForMongo);
+        gridData.markModified("data");
+      }
+      gridData.save(function (err) {
+        if (err) { console.error("Saving data in Mongo", err) }
+      });
+    }
+    catch (err) {
+      console.error("Mongo", err)
+    }
   });
 
   socket.on("fetchPixelsInGridBox", (boxInGrid: IBoxInGridToFetch) => {//temp
@@ -97,28 +97,36 @@ io.on("connect", (socket: Socket) => {
     // });
   });
 
-  socket.on("fetchGridBox", (gridId: string) => {//temp
-    // const panPixels = await PixelInfo.find({ x: { $gte: topLeftX, $lte: bottomRightX }, y: { $gte: topLeftY, $lte: bottomRightY } })
-    // const xBatch = panPixels.map((pixel) => pixel["x"]);
-    // const yBatch = panPixels.map((pixel) => pixel["y"]);
-    // const colorBatch = panPixels.map((pixel) => pixel["rgba"]);
-
-    
-    // redisClient.hgetall(boxInGrid.gridId, (err, data) => {
-    //   if (err) throw err;
-    //   if (data != null) {
-    //     console.log("pixelsInGrid", data)
-    //     const pixelInGrid: IPixelsInGridInfo = { gridId: boxInGrid.gridId, pixelArray: [] };
-    //     for (const key in data) {
-    //       const xy = key.split("_");
-    //       // const color: Uint8ClampedArray = new Uint8ClampedArray(data[key] as unknown as Uint8Array);// as unknown as Uint8Array;
-    //       pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: data[key] })
-    //     }
-    //     console.log("pixelsInGrid", pixelInGrid)
-
-    //     socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
-    //   }
-    // });
+  socket.on("fetchGridBox", (gridId: string) => {
+    console.log('fetchGridBox', gridId);
+    redisClient.hgetall(gridId, (err, data) => {
+      if (err) {
+        console.error(`error fetching from mongo ${err}`)
+      }
+      if (data != null) {
+        const pixelInGrid: IPixelsInGridInfo = { gridId: gridId, pixelArray: [] };
+        for (const key in data) {
+          const xy = key.split("_");
+          pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: data[key] })
+        }
+        socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
+      }
+      else {
+        GridData.findOne({ anchor: gridId }, function (err, data) {
+          if (err) {
+            console.error(`error fetching from mongo ${err}`)
+          }
+          if (data != null) {
+            const pixelInGrid: IPixelsInGridInfo = { gridId: gridId, pixelArray: [] };
+            for (const pixel of data.data) {
+              const xy = pixel.xy.split("_");
+              pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: pixel.rgba });
+            }
+            socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
+          }
+        });
+      }
+    });
   });
 });
 
