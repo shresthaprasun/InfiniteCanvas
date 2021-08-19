@@ -1,0 +1,40 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "allowJs": false,
+        "allowSyntheticDefaultImports": true,
+        "declaration": false,
+        "declarationDir": "dist/typings",
+        "downlevelIteration": true,
+        "esModuleInterop": true,
+        "lib": [
+            "es6",
+            "dom"
+        ],
+        "module": "es6",
+        "moduleResolution": "node",
+        "noFallthroughCasesInSwitch": false,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "sourceMap": true,
+        "strict": false,
+        "strictNullChecks": false,
+        "suppressImplicitAnyIndexErrors": true,
+        "target": "es5",
+        "typeRoots": [
+            "./node_modules/@types",
+            "./extensions"
+        ]
+    },
+    "exclude": [
+        "node_modules",
+        "build",
+        "dist",
+        "src/**/*.test.ts",
+        "__TEST__"
+    ]
+}
