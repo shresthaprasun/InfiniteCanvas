@@ -4,6 +4,8 @@
       "sourceMap": true,
       "module": "es6",
       "target": "es5",
+      "noImplicitAny": true,
+      "allowJs": true,
       "moduleResolution": "node",
       "allowSyntheticDefaultImports":true
     }

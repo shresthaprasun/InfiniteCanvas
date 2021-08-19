@@ -4,24 +4,31 @@ import { CacheManager } from "./cache-manager";
 import { PointerEventType, GestureType } from "./data_types";
 import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
-import { IInputEvenHandler, IPinchArgs, ISwipeArgs } from "./interfaces";
-
+import { IInputEvenHandler, IPinchArgs, ISwipeArgs, WorkerMessageType } from "./interfaces";
+import DataWorker from "worker-loader!../worker/dataWorker";
 // export enum SocketIOEvent {
 //     CONNECT = "connect",
 //     UPLOAD_PIXEL_INFO = "uploadPixelInfo"
 // }
 
+
+
 export class SocketIO implements IInputEvenHandler {
     private socket: Socket;
     private iCanvas: InfiniteCanvas;
     private iGrid: InfiniteGrid;
-    private cacheManager: CacheManager;
+
+    private worker: DataWorker;
+
+
+    // private cacheManager: CacheManager;
 
     constructor(iCanvas: InfiniteCanvas, igrid: InfiniteGrid) {
         this.socket = io();
         this.iCanvas = iCanvas;
         this.iGrid = igrid;
-        this.cacheManager = new CacheManager();
+        this.worker = new DataWorker();
+        // this.cacheManager = new CacheManager();
     }
 
     public init() {
@@ -45,11 +52,26 @@ export class SocketIO implements IInputEvenHandler {
             if (pixelsForPan) { //from redis
                 // save in cache
                 console.log(pixelsForPan);
-                this.cacheManager.savePixelArray(pixelsForPan.gridId, pixelsForPan.pixelArray);
+                this.worker.postMessage({ type: WorkerMessageType.SAVE_PIXEL_ARRAY, gridId: pixelsForPan.gridId, pixelArray: pixelsForPan.pixelArray });
+
+                // this.cacheManager.savePixelArray(pixelsForPan.gridId, pixelsForPan.pixelArray);
                 this.updatePanData(pixelsForPan);
             }
             if (cb) cb();
         });
+
+        this.worker.onmessage = (message) => {
+            if (message.data.type === WorkerMessageType.SUB_BOX_DATA) {
+                if (message.data.data.pixelArray.length > 0) {
+                    this.updatePanData(message.data.data);
+                }
+            }
+            else if (message.data.type === WorkerMessageType.SUB_BOX_IMAGE) {
+                if (message.data.imagedata) {
+                    this.updatePanImageData(message.data.imagedata, message.data.dx, message.data.dy);
+                }
+            }
+        };
     }
 
     private updatePanData(pixelsForPan: IPixelsInGridInfo) {
@@ -58,34 +80,47 @@ export class SocketIO implements IInputEvenHandler {
         }
     }
 
+    private updatePanImageData(imageData: ImageData, dx: number, dy: number) {
+        this.iCanvas.putImageData(imageData, dx, dy);
+    }
+
     public handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
         switch (eventType) {
             //upload the data
             case PointerEventType.PRIMARY_START_DRAG:
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
+                //through worker
                 const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
                 pixelBoxMap.forEach((pixelArray, gridId) => {
-                    this.cacheManager.savePixelArray(gridId, pixelArray);
+                    this.worker.postMessage({ type: WorkerMessageType.SAVE_PIXEL_ARRAY, gridId, pixelArray });
+                    // this.cacheManager.savePixelArray(gridId, pixelArray);
                     this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
-                })
+                });
                 break;
-            case PointerEventType.PRIMARY_END_DRAG:                
+            case PointerEventType.PRIMARY_END_DRAG:
                 break;
             //pan fetch the data
             case PointerEventType.SECONDARY_START_DRAG:
                 break;
             case PointerEventType.SECONDARY_DRAGGED:
-                this.iCanvas.boxesToFetchForPan.forEach((boxes, gridId) => {
+                //Worker
+                console.log("boxes to fetch", this.iCanvas.boxesToFetchForPan);
+                this.iCanvas.boxesToFetchForPan.forEach((boxes, gridId) => {                    
                     for (const box of boxes) {
-                        const data = this.cacheManager.fetchSubBoxOfGrid(gridId, box);
-                        if (data.pixelArray.length > 0) {
-                            this.updatePanData(data);
-                        }
+                        // this.worker.postMessage({ type: WorkerMessageType.FETCH_SUBBOX_OF_GRID, gridId, box });
+                        this.worker.postMessage({ type: WorkerMessageType.FETCH_IMAGE_DATA_OF_SUBBOX, gridId, box });
+
+                        // const data = this.cacheManager.fetchSubBoxOfGrid(gridId, box);
+                        // if (data.pixelArray.length > 0) {
+                        //     this.updatePanData(data);
+                        // }
                     }
                 });
                 this.iGrid.gridRemoved.forEach((gridId) => {
-                    this.cacheManager.deleteGridData(gridId);
+                    this.worker.postMessage({ type: WorkerMessageType.DELETE_GRID_DATA, gridId });
+
+                    // this.cacheManager.deleteGridData(gridId);
                 })
                 this.iGrid.gridAdded.forEach((gridId) => {
                     this.socket.emit("fetchGridBox", gridId);

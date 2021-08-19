@@ -107,7 +107,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
             for (let i = box.min.x; i < box.max.x; ++i) {
                 for (let j = box.min.y; j < box.max.y; ++j) {
                     const pixel = this.ctx.getImageData(i, j, 1, 1);
-                    if (pixel.data["3"] as number !== 0) {
+                    if (pixel.data["3" as any] as number !== 0) {
                         pixelArray.push({ x: i + this._iGrid.anchorPoint.x, y: j + this._iGrid.anchorPoint.y, rgba: pixel.data.toString() })
                     }
                 }
@@ -124,6 +124,17 @@ export class InfiniteCanvas implements IInputEvenHandler {
         this.ctx.putImageData(imagedata, x - this.anchorPoint.x, y - this.anchorPoint.y);
     }
 
+    public putImageData(imagedata: ImageData, dx: number, dy: number) {
+
+        this.ctx.putImageData(imagedata, dx - this.anchorPoint.x, dy - this.anchorPoint.y);
+    }
+
+    private paint(event: PointerEvent) {
+        if (event.buttons > 0) {
+            this.ctx.fillRect(event.clientX, event.clientY, 5, 5);
+        }
+    }
+
     public handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
         switch (eventType) {
             //draw
@@ -133,8 +144,19 @@ export class InfiniteCanvas implements IInputEvenHandler {
                 this.moveTo.set(Math.floor(event.pageX), Math.floor(event.pageY));
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
-                this.ctx.lineTo(event.pageX, event.pageY);
-                this.ctx.stroke();
+                // this.ctx.lineTo(event.pageX, event.pageY);
+                // this.ctx.stroke();
+                if (event.getCoalescedEvents) {
+                    for (let coalesced_event of event.getCoalescedEvents()) {
+                        // this.paint(coalesced_event); // Paint all raw/non-coalesced points
+                        this.ctx.lineTo(coalesced_event.pageX, coalesced_event.pageY);
+                        this.ctx.stroke();
+                    }
+                } else {
+                    // this.paint(event); // Paint the final coalesced point
+                    this.ctx.lineTo(event.pageX, event.pageY);
+                    this.ctx.stroke();
+                }
                 break;
             case PointerEventType.PRIMARY_END_DRAG:
                 break;
@@ -146,18 +168,20 @@ export class InfiniteCanvas implements IInputEvenHandler {
                 let panData: ImageData | undefined = undefined;
                 this._boxesToFetch.clear();
                 const canvasBoxAfterPan = new Box(this.anchorPoint, new Point(this.anchorPoint.x + this._canvas.width, this.anchorPoint.y + this._canvas.height));
-                const canvasBoxBeforePan = new Box(new Point(this.anchorPoint.x + this._iGrid.panOffset.x, this.anchorPoint.y + this._iGrid.panOffset.y), new Point(this.anchorPoint.x + this._canvas.width - this._iGrid.panOffset.x, this.anchorPoint.y + this._canvas.height - this._iGrid.panOffset.y));
+                const canvasBoxBeforePan = new Box(new Point(this.anchorPoint.x + this._iGrid.panOffset.x, this.anchorPoint.y + this._iGrid.panOffset.y), new Point(this.anchorPoint.x + this._canvas.width + this._iGrid.panOffset.x, this.anchorPoint.y + this._canvas.height + this._iGrid.panOffset.y));
                 const newSubCanvasBoxes = canvasBoxAfterPan.subtract(canvasBoxBeforePan);
 
                 this._iGrid.gridBoxes.forEach((box, id) => {
                     for (const newSubCanvasBox of newSubCanvasBoxes) {
-                        const subboxes = box.subtract(newSubCanvasBox);
-                        const subboxesToFetch = this._boxesToFetch.get(id);
-                        if (subboxesToFetch) {
-                            subboxesToFetch.push(...subboxes);
-                        }
-                        else {
-                            this._boxesToFetch.set(id, subboxes);
+                        const commonBox = box.intersect(newSubCanvasBox);
+                        if (commonBox) {
+                            const subboxesToFetch = this._boxesToFetch.get(id);
+                            if (subboxesToFetch) {
+                                subboxesToFetch.push(commonBox);
+                            }
+                            else {
+                                this._boxesToFetch.set(id, [commonBox]);
+                            }
                         }
                     }
                 });
@@ -187,64 +211,3 @@ export class InfiniteCanvas implements IInputEvenHandler {
         throw new Error('Method not implemented.');
     }
 }
-
-
-// let boxToBefetchedAlongWidth: IBox = new Box();
-// let boxToBeFetchedAlongHeight: IBox = new Box();
-
-// if (this._iGrid.panOffset.x >= 0 && this._iGrid.panOffset.y >= 0) { //moving towards bottom-right
-//     panData = this.ctx.getImageData(0, 0, this.canvas.width - this._iGrid.panOffset.x, this.canvas.height - this._iGrid.panOffset.y);
-//     if (this._iGrid.panOffset.y >= 1) {
-//         boxToBefetchedAlongWidth.min.copy(this.anchorPoint);
-//         boxToBefetchedAlongWidth.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this._iGrid.panOffset.y);
-//     }
-//     if (this._iGrid.panOffset.x >= 1) {
-//         boxToBeFetchedAlongHeight.min.set(this.anchorPoint.x, this.anchorPoint.y + this._iGrid.panOffset.y);
-//         boxToBeFetchedAlongHeight.max.set(this.anchorPoint.x + this._iGrid.panOffset.x, this.anchorPoint.y + this.canvas.height);
-//     }
-//     //logic is reverse but follows same principle
-//     // _________________
-//     // |   ________|_\_|___ panning and shifted out of this.canvas
-//     // |  |        | \ |  |dataToSaveAlongHeight
-//     // |  |        | \ |  |
-//     // |__|________|_\_|  |
-//     // |/_|/_/_/_/_/_/_|  |dataToSaveAlongWidth
-//     //    |_______________|
-// }
-// else if (this._iGrid.panOffset.x >= 0 && this._iGrid.panOffset.y <= 0) { //moving towards top-right
-//     panData = this.ctx.getImageData(0, 0 - this._iGrid.panOffset.y, this.canvas.width - this._iGrid.panOffset.x, this.canvas.height + this._iGrid.panOffset.y);
-//     if (this._iGrid.panOffset.y <= -1) {
-//         boxToBefetchedAlongWidth.min.set(this.anchorPoint.x, this.anchorPoint.y + this.canvas.height + this._iGrid.panOffset.y)
-//         boxToBefetchedAlongWidth.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this.canvas.height);
-
-//     }
-//     if (this._iGrid.panOffset.x >= 1) {
-//         boxToBeFetchedAlongHeight.min.copy(this.anchorPoint);
-//         boxToBeFetchedAlongHeight.max.set(this.anchorPoint.x + this._iGrid.panOffset.x, this.anchorPoint.y + this.canvas.height + this._iGrid.panOffset.y)
-//     }
-// }
-// else if (this._iGrid.panOffset.x <= 0 && this._iGrid.panOffset.y <= 0) { //moving towards top-left
-//     panData = this.ctx.getImageData(0 - this._iGrid.panOffset.x, 0 - this._iGrid.panOffset.y, this.canvas.width + this._iGrid.panOffset.x, this.canvas.height + this._iGrid.panOffset.y);
-//     if (this._iGrid.panOffset.y <= -1) {
-//         boxToBefetchedAlongWidth.min.set(this.anchorPoint.x,this.anchorPoint.y + this.canvas.height + this._iGrid.panOffset.y);
-//         boxToBefetchedAlongWidth.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this.canvas.height)
-
-//     }
-//     if (this._iGrid.panOffset.x <= -1) {
-//         boxToBeFetchedAlongHeight.min.set(this.anchorPoint.x + this.canvas.width + this._iGrid.panOffset.x, this.anchorPoint.y)
-//         boxToBeFetchedAlongHeight.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this.canvas.height + this._iGrid.panOffset.y);
-
-//     }
-// }
-// else if (this._iGrid.panOffset.x <= 0 && this._iGrid.panOffset.y >= 0) { //moving towards bottom-left
-//     panData = this.ctx.getImageData(0 - this._iGrid.panOffset.x, 0, this.canvas.width + this._iGrid.panOffset.x, this.canvas.height - this._iGrid.panOffset.y);
-//     if (this._iGrid.panOffset.y >= 1) {
-//         boxToBefetchedAlongWidth.min.copy(this.anchorPoint);
-//         boxToBefetchedAlongWidth.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this._iGrid.panOffset.y);
-
-//     }
-//     if (this._iGrid.panOffset.x <= -1) {
-//         boxToBeFetchedAlongHeight.min.set(this.anchorPoint.x + this.canvas.width + this._iGrid.panOffset.x, this.anchorPoint.y + this._iGrid.panOffset.y);
-//         boxToBeFetchedAlongHeight.max.set(this.anchorPoint.x + this.canvas.width, this.anchorPoint.y + this.canvas.height);
-//     }
-// }

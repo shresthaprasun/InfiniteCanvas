@@ -33,6 +33,13 @@ export class Point implements IPoint {
         this._x += point.x;
         this._y += point.y;
     }
+
+    public equals(point: IPoint): boolean {
+        if (this._x === point.x && this._y === point.y) {
+            return true;
+        }
+        return false;
+    }
 }
 
 export class Box implements IBox {
@@ -101,6 +108,7 @@ export class Box implements IBox {
         if (this._min.x <= box.min.x && this._max.x >= box.max.x && this._min.y <= box.min.y && this._max.y >= box.max.y) {
             return true;
         }
+        return false;
     }
 
     public intersects(box: IBox): boolean {
@@ -120,26 +128,38 @@ export class Box implements IBox {
         if (!this.intersects(box)) {
             return result;
         }
-        const minXOffset = box.min.x - this._min.x;
+        let minXOffset = box.min.x - this._min.x;
         if (minXOffset > 0) {
-            result.push(new Box(new Point(this._min.x, this._min.y), new Point(box.min.x, this._max.y)));
+            result.push(new Box(new Point(this._min.x, this._min.y), new Point(this._min.x + minXOffset, this._max.y)));
         }
-        const maxXOffset = this._max.x - box.max.x;
+        let maxXOffset = this._max.x - box.max.x;
         if (maxXOffset > 0) {
-            result.push(new Box(new Point(box.max.x, this._min.y), new Point(this._max.x, this._max.y)));
+            result.push(new Box(new Point(this._max.x - maxXOffset, this._min.y), new Point(this._max.x, this._max.y)));
         }
         const minYOffset = box.min.y - this._min.y;
+        const maxYOffset = this._max.y - box.max.y;
+
+        minXOffset = minXOffset > 0 ? minXOffset : 0;
+        maxXOffset = maxXOffset > 0 ? maxXOffset : 0;
+
         if (minYOffset > 0) {
-            result.push(new Box(new Point(this._min.x + minXOffset, this._min.y), new Point(this._max.x - maxXOffset, box.min.y)));
+            result.push(new Box(new Point(this._min.x + minXOffset, this._min.y), new Point(this._max.x - maxXOffset, this._min.y + minYOffset)));
         }
-        const maxYOffset = box.min.y - this._min.y;
+
         if (maxYOffset > 0) {
-            result.push(new Box(new Point(this._min.x + minXOffset, box.max.y), new Point(this._max.x - maxXOffset, this._max.y)));
+            result.push(new Box(new Point(this._min.x + minXOffset, this._max.y - maxYOffset), new Point(this._max.x - maxXOffset, this._max.y)));
         }
+
         return result;
     }
 
     public intersect(box: IBox): IBox | undefined {
+        if (this.contains(box)) {
+            return box;
+        }
+        if (box.contains(this)) {
+            return this;
+        }
         if (this.intersects(box)) {
             const minX = this._min.x > box.min.x ? this._min.x : box.min.x;
             const minY = this._min.y > box.min.y ? this._min.y : box.min.y;;
@@ -158,6 +178,14 @@ export class Box implements IBox {
 
     public containsPoint(point: IPoint): boolean {
         if (point.x <= this._max.x && point.x >= this._min.x && point.y <= this._max.y && point.y >= this._min.y) {
+            return true;
+        }
+        return false;
+    }
+
+
+    public equals(box: IBox): boolean {
+        if (this._min.equals(box.min) && this._max.equals(box.max)) {
             return true;
         }
         return false;

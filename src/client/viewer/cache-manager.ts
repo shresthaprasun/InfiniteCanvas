@@ -37,6 +37,38 @@ export class CacheManager {
         return { gridId, pixelArray };
     }
 
+    public fetchImageDataOfSubBoxInGrid(gridId: string, box: IBox): ImageData | undefined {
+        //two methods to get data
+        //loop through all possible values in box and check if it is in map
+        //get all values of grid and check if they lies in box in the box
+
+        const buffer: number[] = [];
+        const gridData = this.cacheData.get(gridId);
+        let dataAdded = false;
+        if (gridData) {
+            for (let indexY = box.min.y; indexY < box.max.y; ++indexY) {
+                for (let indexX = box.min.x; indexX < box.max.x; ++indexX) {
+                    const rgba = gridData.get(`${indexX}_${indexY}`);
+                    if (rgba) {
+                        const rgba_int = rgba.split(",").map((i) => parseInt(i, 10))
+                        buffer.push(rgba_int[0], rgba_int[1], rgba_int[2], rgba_int[3])
+                        dataAdded = true;
+                    }
+                    else {
+                        buffer.push(0, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        if (dataAdded && buffer.length > 0) {
+            const clampedArray = new Uint8ClampedArray(buffer);
+            const imagedata = new ImageData(clampedArray, box.max.x - box.min.x, box.max.y - box.min.y);
+            return imagedata;
+        }
+        return undefined;
+    }
+
     public deleteGridData(gridId: string): void {
         const map = this.cacheData.get(gridId);
         map && map.clear();
