@@ -22,7 +22,7 @@ export interface IBox {
     isEmpty(): boolean;
     contains(box: IBox): boolean;
     subtract(box: IBox): IBox[];
-    translate(point: IPoint): void;
+    translate(point: IPoint): IBox;
     containsPoint(point: IPoint): boolean;
     intersect(box: IBox): IBox | undefined;
     equals(box: IBox): boolean;

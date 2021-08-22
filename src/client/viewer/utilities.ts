@@ -185,9 +185,10 @@ export class Box implements IBox {
         return undefined;
     }
 
-    public translate(point: IPoint): void {
+    public translate(point: IPoint): IBox {
         this._min.add(point);
         this._max.add(point);
+        return this;
     }
 
 
