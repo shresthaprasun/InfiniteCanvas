@@ -2,8 +2,8 @@ import { ResizeSensor } from "css-element-queries";
 import { IPixelInfo } from "../../interfaces";
 import { PointerEventType, GestureType } from './data_types';
 import { InfiniteGrid } from './infinite-grid';
-import { IBox, IInputEvenHandler, IPinchArgs, IPoint, ISwipeArgs } from './interfaces';
-import { Box, Point } from './utilities';
+import { IBox, IDrawData, IInputEvenHandler, IPinchArgs, IPoint, ISwipeArgs } from './interfaces';
+import { Box, bresenhamLine, Point } from './utilities';
 export class InfiniteCanvas implements IInputEvenHandler {
     private _canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
@@ -11,7 +11,8 @@ export class InfiniteCanvas implements IInputEvenHandler {
     private _iGrid: InfiniteGrid;
 
     private panStart: IPoint;
-    private moveTo: IPoint;
+    private drawStart: IPoint;
+    private drawEnd: IPoint;
 
     private _boxesToFetch: Map<string, IBox[]>;
 
@@ -30,7 +31,8 @@ export class InfiniteCanvas implements IInputEvenHandler {
     constructor(igrid: InfiniteGrid) {
         this._iGrid = igrid;
         this.panStart = new Point(0, 0);
-        this.moveTo = new Point(0, 0);
+        this.drawStart = new Point(0, 0);
+        this.drawEnd = new Point(0, 0);
         this._boxesToFetch = new Map();
     }
 
@@ -45,6 +47,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
         this._canvas.style.height = "100%";
         this._canvas.style.border = "1px solid black";
         this._canvas.style.touchAction = "none";
+        this._canvas.style.cursor = "crosshair";
         this._canvas.width = this._canvas.offsetWidth;
         this._canvas.height = this._canvas.offsetHeight;
         this.ctx = this._canvas.getContext("2d");
@@ -85,17 +88,17 @@ export class InfiniteCanvas implements IInputEvenHandler {
         const result = new Map<string, IPixelInfo[]>();
         const brushTolerance = 10;
         //creating box for pixel extraction
-        let minx = this.moveTo.x;
+        let minx = this.drawEnd.x;
         let maxx = Math.floor(event.pageX);
         if (minx > maxx) {
             minx = maxx;
-            maxx = this.moveTo.x;
+            maxx = this.drawEnd.x;
         }
-        let miny = this.moveTo.y;
+        let miny = this.drawEnd.y;
         let maxy = Math.floor(event.pageY);
         if (miny > maxy) {
             miny = maxy;
-            maxy = this.moveTo.y;
+            maxy = this.drawEnd.y;
         }
 
         const panPixelBox = new Box(new Point(minx - brushTolerance, miny - brushTolerance), new Point(maxx + brushTolerance, maxy + brushTolerance));
@@ -114,7 +117,7 @@ export class InfiniteCanvas implements IInputEvenHandler {
             }
             result.set(gridId, pixelArray);
         });
-        this.moveTo.set(Math.floor(event.pageX), Math.floor(event.pageY));
+        this.drawEnd.set(Math.floor(event.pageX), Math.floor(event.pageY));
         return result;
     }
 
@@ -129,10 +132,25 @@ export class InfiniteCanvas implements IInputEvenHandler {
         this.ctx.putImageData(imagedata, dx - this.anchorPoint.x, dy - this.anchorPoint.y);
     }
 
-    private paint(event: PointerEvent) {
-        if (event.buttons > 0) {
-            this.ctx.fillRect(event.clientX, event.clientY, 5, 5);
-        }
+    // private paint(event: PointerEvent) {
+    //     if (event.buttons > 0) {
+    //         this.ctx.fillRect(event.clientX, event.clientY, 5, 5);
+    //     }
+    // }
+
+    public getDrawnCanvasBox(brushTolerance: number): IDrawData {
+        const result: IDrawData = {
+            imageData: undefined,
+            box: new Box(),
+            start: new Point(),
+            end: new Point()
+        };
+        const imageBox = new Box(this.drawStart, this.drawEnd).expandByScalar(brushTolerance);
+        result.imageData = this.ctx.getImageData(imageBox.min.x, imageBox.min.y, imageBox.max.x - imageBox.min.x, imageBox.max.y - imageBox.min.y);
+        result.box.copy(imageBox);
+        result.start.copy(this.drawStart);
+        result.end.copy(this.drawEnd);
+        return result;
     }
 
     public handlePointerEvent(eventType: PointerEventType, event: PointerEvent) {
@@ -141,22 +159,26 @@ export class InfiniteCanvas implements IInputEvenHandler {
             case PointerEventType.PRIMARY_START_DRAG:
                 this.ctx.beginPath();
                 this.ctx.moveTo(event.pageX, event.pageY);
-                this.moveTo.set(Math.floor(event.pageX), Math.floor(event.pageY));
+                this.drawStart.set(Math.floor(event.pageX), Math.floor(event.pageY))
+                this.drawEnd.set(Math.floor(event.pageX), Math.floor(event.pageY));
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
-                // this.ctx.lineTo(event.pageX, event.pageY);
-                // this.ctx.stroke();
+                this.drawStart.copy(this.drawEnd);
                 if (event.getCoalescedEvents) {
                     for (let coalesced_event of event.getCoalescedEvents()) {
-                        // this.paint(coalesced_event); // Paint all raw/non-coalesced points
                         this.ctx.lineTo(coalesced_event.pageX, coalesced_event.pageY);
-                        this.ctx.stroke();
                     }
                 } else {
-                    // this.paint(event); // Paint the final coalesced point
                     this.ctx.lineTo(event.pageX, event.pageY);
-                    this.ctx.stroke();
                 }
+                this.ctx.stroke();
+                this.drawEnd.set(Math.floor(event.pageX), Math.floor(event.pageY));
+                // const points = bresenhamLine(this.drawStart, this.drawEnd, 10);
+                // for (const point of points) {
+                //     this.ctx.fillRect(point.x, point.y, 1, 1);
+                // }
+                // this.drawStart.copy(this.drawEnd);
+
                 break;
             case PointerEventType.PRIMARY_END_DRAG:
                 break;

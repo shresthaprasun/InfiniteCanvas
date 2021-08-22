@@ -34,7 +34,7 @@ services:
             - .:/src
             - /node_modules
         command: >
-            sh -c "npm run build && node dist/server.js"
+            sh -c "node --max-old-space-size=5120 && npm run build && node dist/server.js"
 
 volumes:
     db-data :

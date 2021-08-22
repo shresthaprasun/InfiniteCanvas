@@ -1,11 +1,12 @@
 import { io, Socket } from "socket.io-client";
-import { IBoxInGridToFetch, IPixelsInGridInfo } from "../../interfaces";
+import { IBoxInGridToFetch, IPixelInfo, IPixelsInGridInfo } from "../../interfaces";
 import { CacheManager } from "./cache-manager";
 import { PointerEventType, GestureType } from "./data_types";
 import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
-import { IInputEvenHandler, IPinchArgs, ISwipeArgs, WorkerMessageType } from "./interfaces";
+import { IDrawData, IInputEvenHandler, IPinchArgs, ISwipeArgs, WorkerMessageType } from "./interfaces";
 import DataWorker from "worker-loader!../worker/dataWorker";
+import { bresenhamLine } from "./utilities";
 // export enum SocketIOEvent {
 //     CONNECT = "connect",
 //     UPLOAD_PIXEL_INFO = "uploadPixelInfo"
@@ -91,12 +92,79 @@ export class SocketIO implements IInputEvenHandler {
                 break;
             case PointerEventType.PRIMARY_DRAGGED:
                 //through worker
-                const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
-                pixelBoxMap.forEach((pixelArray, gridId) => {
-                    this.worker.postMessage({ type: WorkerMessageType.SAVE_PIXEL_ARRAY, gridId, pixelArray });
-                    // this.cacheManager.savePixelArray(gridId, pixelArray);
-                    this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
-                });
+
+                const brushTolerance = 10;
+
+                const drawData: IDrawData = this.iCanvas.getDrawnCanvasBox(brushTolerance);
+                const gridBoxes = this.iGrid.getMappedGridBoxes(drawData.box, 0);
+                if (gridBoxes.size === 1) {
+                    gridBoxes.forEach((gridBox, gridId) => {
+                        // const pixelArray = this.iCanvas.getUpdatedPixelBatch(event); //Map<string, IPixelInfo[]>
+                        const pixelArray: IPixelInfo[] = [];
+                        const tracedPoints = bresenhamLine(drawData.start, drawData.end, brushTolerance);
+                        for (const tracedPoint of tracedPoints) {
+                            const row_index = (tracedPoint.y - drawData.box.min.y);
+                            const col_index = (tracedPoint.x - drawData.box.min.x);
+                            if (row_index >= 0 && row_index < drawData.imageData.height && col_index >= 0 && col_index < drawData.imageData.width) {
+                                const a = drawData.imageData.data[(row_index * drawData.imageData.width + col_index) * 4 + 3];
+                                if (a !== 0) {
+                                    const r = drawData.imageData.data[(row_index * drawData.imageData.width + col_index) * 4];
+                                    const g = drawData.imageData.data[(row_index * drawData.imageData.width + col_index) * 4 + 1];
+                                    const b = drawData.imageData.data[(row_index * drawData.imageData.width + col_index) * 4 + 2];
+                                    tracedPoint.translate(this.iGrid.anchorPoint);
+                                    // x -> column, y -> row
+                                    pixelArray.push({ x: tracedPoint.x, y: tracedPoint.y, rgba: `${r},${g},${b},${a}` })
+                                }
+                            }
+                        }
+
+
+
+                        // const pixelArray: IPixelInfo[] = [];
+                        // for (let i = 0; i < drawData.imageData.height; ++i) { //row
+                        //     for (let j = 0; j < drawData.imageData.width; ++j) { // col
+                        //         const a = drawData.imageData.data[(i * drawData.imageData.width + j) * 4 + 3];
+                        //         if (a !== 0) {
+                        //             const r = drawData.imageData.data[(i * drawData.imageData.width + j) * 4];
+                        //             const g = drawData.imageData.data[(i * drawData.imageData.width + j) * 4 + 1];
+                        //             const b = drawData.imageData.data[(i * drawData.imageData.width + j) * 4 + 2];
+                        //             // x -> column, y -> row
+                        //             pixelArray.push({ x: j + drawData.box.min.x + this.iGrid.anchorPoint.x, y: i + drawData.box.min.y + this.iGrid.anchorPoint.y, rgba: `${r},${g},${b},${a}` })
+                        //         }
+                        //     }
+                        // }
+                        // const pixelMap = new Map<string, IPixelInfo[]>();
+                        // pixelMap.set(gridId, pixelArray);
+                        this.worker.postMessage({ type: WorkerMessageType.SAVE_PIXEL_ARRAY, gridId, pixelArray });
+                        this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
+
+                        // const commonBox = gridBox.intersect(drawData.box);
+                        // if(commonBox){
+
+                        // }
+                    })
+                }
+                else {
+                    gridBoxes.forEach((gridBox, gridId) => {
+                        // get the line intersection 
+                        // box and two points and do same as above
+                    })
+                }
+
+
+
+
+
+
+
+
+
+                // const pixelBoxMap = this.iCanvas.getUpdatedPixelBatch(event);
+                // pixelBoxMap.forEach((pixelArray, gridId) => {
+                //     this.worker.postMessage({ type: WorkerMessageType.SAVE_PIXEL_ARRAY, gridId, pixelArray });
+                //     // this.cacheManager.savePixelArray(gridId, pixelArray);
+                //     this.socket.emit("uploadPixelInfo", { gridId, pixelArray } as IPixelsInGridInfo);
+                // });
                 break;
             case PointerEventType.PRIMARY_END_DRAG:
                 break;
@@ -106,7 +174,7 @@ export class SocketIO implements IInputEvenHandler {
             case PointerEventType.SECONDARY_DRAGGED:
                 //Worker
                 console.log("boxes to fetch", this.iCanvas.boxesToFetchForPan);
-                this.iCanvas.boxesToFetchForPan.forEach((boxes, gridId) => {                    
+                this.iCanvas.boxesToFetchForPan.forEach((boxes, gridId) => {
                     for (const box of boxes) {
                         // this.worker.postMessage({ type: WorkerMessageType.FETCH_SUBBOX_OF_GRID, gridId, box });
                         this.worker.postMessage({ type: WorkerMessageType.FETCH_IMAGE_DATA_OF_SUBBOX, gridId, box });

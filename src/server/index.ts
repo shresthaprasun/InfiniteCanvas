@@ -1,5 +1,5 @@
 import * as express from "express";
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import redis from "redis";
@@ -25,12 +25,12 @@ app.use('/:anchorPoint', express.static("public"));
 //   res.send(`Hello World ${req.params}`); // This will serve your request to '/'.
 // });
 
-mongoose.set('useFindAndModify', false);
-mongoose.connect(`mongodb://mongo:${MONGO_PORT}/infinitecanvas`, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((show) => {
-    console.log('MongoDB connected');
-  })
-  .catch(err => console.log(err));
+// mongoose.set('useFindAndModify', false);
+// mongoose.connect(`mongodb://mongo:${MONGO_PORT}/infinitecanvas`, { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then((show) => {
+//     console.log('MongoDB connected');
+//   })
+//   .catch(err => console.log(err));
 
 
 io.on("connect", (socket: Socket) => {
@@ -57,47 +57,25 @@ io.on("connect", (socket: Socket) => {
 
 
     //mongodb
-    try {
-      let gridData = await GridData.findOne({ anchor: pixelsInGrid.gridId });//queue is needed
-      if (gridData === null) {
-        gridData = new GridData({ anchor: pixelsInGrid.gridId });
-      }
-      for (const pixel of pixelArrayForMongo) {
-        const pixelInfo = await PixelInfo.findOneAndUpdate({ xy: pixel.xy}, { rgba: pixel.rgba }, { new: true, upsert: true});
-        gridData['data'].push(pixelInfo._id);
-      }
-      gridData.save(function (err) {
-        if (err) { console.error("Saving data in Mongo", err) }
-      });
-    }
-    catch (err) {
-      console.error("Mongo", err)
-    }
-  });
-
-  socket.on("fetchPixelsInGridBox", (boxInGrid: IBoxInGridToFetch) => {//temp
-    // const panPixels = await PixelInfo.find({ x: { $gte: topLeftX, $lte: bottomRightX }, y: { $gte: topLeftY, $lte: bottomRightY } })
-    // const xBatch = panPixels.map((pixel) => pixel["x"]);
-    // const yBatch = panPixels.map((pixel) => pixel["y"]);
-    // const colorBatch = panPixels.map((pixel) => pixel["rgba"]);
-
-    console.log("fetching", boxInGrid.gridId)
-    // redisClient.hgetall(boxInGrid.gridId, (err, data) => {
-    //   if (err) throw err;
-    //   if (data != null) {
-    //     console.log("pixelsInGrid", data)
-    //     const pixelInGrid: IPixelsInGridInfo = { gridId: boxInGrid.gridId, pixelArray: [] };
-    //     for (const key in data) {
-    //       const xy = key.split("_");
-    //       // const color: Uint8ClampedArray = new Uint8ClampedArray(data[key] as unknown as Uint8Array);// as unknown as Uint8Array;
-    //       pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: data[key] })
+    //   try {
+    //     let gridData = await GridData.findOne({ anchor: pixelsInGrid.gridId });//queue is needed
+    //     if (gridData === null) {
+    //       gridData = new GridData({ anchor: pixelsInGrid.gridId });
     //     }
-    //     console.log("pixelsInGrid", pixelInGrid)
-
-    //     socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
+    //     for (const pixel of pixelArrayForMongo) {
+    //       const pixelInfo = await PixelInfo.findOneAndUpdate({ xy: pixel.xy}, { rgba: pixel.rgba }, { new: true, upsert: true});
+    //       gridData['data'].push(pixelInfo._id);
+    //     }
+    //     gridData.save(function (err) {
+    //       if (err) { console.error("Saving data in Mongo", err) }
+    //     });
     //   }
-    // });
+    //   catch (err) {
+    //     console.error("Mongo", err)
+    //   }
   });
+
+
 
   socket.on("fetchGridBox", async (gridId: string) => {
     console.log('fetchGridBox', gridId);
@@ -114,17 +92,17 @@ io.on("connect", (socket: Socket) => {
         socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
       }
       else {
-        const gridData = await GridData.findOne({ anchor: gridId });
-        if (gridData != null) {
-          const dataPromises = gridData.data.map(_id => { return PixelInfo.findOne({ _id }) });
-          const pixelInfos = await Promise.all(dataPromises);
-          const pixelInGrid: IPixelsInGridInfo = { gridId: gridId, pixelArray: [] };
-          for (const pixel of pixelInfos) {
-            const xy = pixel.xy.split("_");
-            pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: pixel.rgba });
-          }
-          socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
-        }
+        // const gridData = await GridData.findOne({ anchor: gridId });
+        // if (gridData != null) {
+        //   const dataPromises = gridData.data.map(_id => { return PixelInfo.findOne({ _id }) });
+        //   const pixelInfos = await Promise.all(dataPromises);
+        //   const pixelInGrid: IPixelsInGridInfo = { gridId: gridId, pixelArray: [] };
+        //   for (const pixel of pixelInfos) {
+        //     const xy = pixel.xy.split("_");
+        //     pixelInGrid.pixelArray.push({ x: parseInt(xy[0], 10), y: parseInt(xy[1], 10), rgba: pixel.rgba });
+        //   }
+        //   socket.emit('pixelsForPan', pixelInGrid);//as IPixelsInGridInfo
+        // }
       }
     });
   });

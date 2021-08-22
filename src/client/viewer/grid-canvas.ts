@@ -26,6 +26,7 @@ export class GridCanvas implements IInputEvenHandler {
         this._canvas.style.width = "100%";
         this._canvas.style.height = "100%";
         this._canvas.style.border = "1px solid black";
+        this._canvas.style.cursor = "crosshair";
         this._canvas.style.touchAction = "none";
         this._canvas.width = this._canvas.offsetWidth;
         this._canvas.height = this._canvas.offsetHeight;
