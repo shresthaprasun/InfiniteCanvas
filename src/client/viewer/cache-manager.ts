@@ -3,7 +3,7 @@ import { IBox } from "./interfaces";
 import { Point } from "./utilities";
 
 export class CacheManager {
-    private cacheData: Map<string, Map<string, string>>; //Map<gridId<Map<x_y,color>>
+    private cacheData: Map<string, Map<string, string>>;
 
     constructor() {
         this.cacheData = new Map();

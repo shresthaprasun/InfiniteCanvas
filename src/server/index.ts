@@ -78,10 +78,9 @@ io.on("connect", (socket: Socket) => {
 
 
   socket.on("fetchGridBox", async (gridId: string) => {
-    console.log('fetchGridBox', gridId);
     redisClient.hgetall(gridId, async (err, data) => {
       if (err) {
-        console.error(`error fetching from mongo ${err}`)
+        console.error(`error fetching from redis ${err}`)
       }
       if (data != null) {
         const pixelInGrid: IPixelsInGridInfo = { gridId: gridId, pixelArray: [] };

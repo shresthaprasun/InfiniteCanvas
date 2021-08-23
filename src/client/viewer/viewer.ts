@@ -3,14 +3,14 @@ import { InfiniteCanvas } from "./infinite-canvas";
 import { InfiniteGrid } from "./infinite-grid";
 import { InputManager } from "./input-manager";
 import { IPoint } from "./interfaces";
-import { SocketIO } from "./socketIO";
+import { WorkerHandler } from "./worker-handler";
 import { Point } from "./utilities";
 
 //for canvas and input handling
 export class Viewer {
     private iGrid: InfiniteGrid;
     private anchorPoint: IPoint;
-    private socket: SocketIO;
+    private socket: WorkerHandler;
     private icanvas: InfiniteCanvas;
     private gridCanvas: GridCanvas;
     private inputManager: InputManager;
@@ -19,7 +19,7 @@ export class Viewer {
         this.anchorPoint = new Point();
         this.iGrid = new InfiniteGrid(this.anchorPoint);
         this.icanvas = new InfiniteCanvas(this.iGrid);
-        this.socket = new SocketIO(this.icanvas, this.iGrid);
+        this.socket = new WorkerHandler(this.icanvas, this.iGrid);
         this.gridCanvas = new GridCanvas(this.iGrid);
         this.inputManager = new InputManager([this.iGrid, this.icanvas, this.socket, this.gridCanvas]);
     }

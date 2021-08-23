@@ -46,14 +46,23 @@ export interface IInputEvenHandler {
 }
 
 export enum WorkerMessageType {
+    //cache
     SAVE_PIXEL_ARRAY = "savePixelArray",
     SAVE_IMAGEDATA = "saveImageData",
-    FETCH_SUBBOX_OF_GRID = "fetchSubBoxOfGrid",
+    GET_SUBBOX_OF_GRID = "getSubBoxOfGrid",
+    //from server
+    FETCH_SUBBOX_OF_GRID = "fetchSubBoxOfGrid",    
     DELETE_GRID_DATA = "deleteGridData",
     FETCH_IMAGE_DATA_OF_SUBBOX = "fetchImageDataOfSubBoxInGrid",
 
     SUB_BOX_DATA = "subBoxData",
     SUB_BOX_IMAGE = "subBoxImage",
+
+    //put to canvas
+    PUT_PIXEL_ARRAY="putPixelArray",
+
+    //socket
+    INIT_SOCKET="initSocket"
 }
 
 export interface IDrawData { 
